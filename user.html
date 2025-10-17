@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>User Panel — Test Platforma</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="panel">
+      <h2>User Panel</h2>
+      <label>Yo'nalishni tanlang</label>
+      <select id="direction">
+        <option value="javascript">JavaScript</option>
+        <option value="react">React</option>
+        <option value="flutter">Flutter</option>
+        <option value="python">Python</option>
+      </select>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button id="start" class="btn primary">Testni boshlash</button>
+        <button id="logout" class="btn ghost">Chiqish</button>
+      </div>
+      <p id="msg" class="muted"></p>
+    </div>
+  </div>
+
+<script type="module">
+import { auth } from './firebase.js';
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+onAuthStateChanged(auth, user => {
+  if (!user) location.href = 'login.html';
+});
+
+document.getElementById('start').addEventListener('click', () => {
+  const dir = document.getElementById('direction').value;
+  localStorage.setItem('direction', dir);
+  location.href = 'dashboard.html';
+});
+
+document.getElementById('logout').addEventListener('click', () => signOut(auth).then(() => location.href = 'login.html'));
+</script>
+</body>
+</html>

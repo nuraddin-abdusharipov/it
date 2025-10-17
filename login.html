@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login — Test Platforma</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="auth-wrap">
+      <h2>Kirish</h2>
+      <input id="email" type="email" placeholder="Email" />
+      <input id="password" type="password" placeholder="Parol" />
+      <div style="display:flex;gap:10px">
+        <button id="loginBtn" class="btn primary">Kirish</button>
+        <a href="register.html" class="btn ghost" style="align-self:center;">Ro'yxatdan o'tish</a>
+      </div>
+      <p id="msg" class="muted"></p>
+    </div>
+  </div>
+
+<script type="module">
+import { auth } from './firebase.js';
+import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+const email = document.getElementById('email');
+const password = document.getElementById('password');
+const msg = document.getElementById('msg');
+
+const ADMIN_EMAIL = "admin@gmail.com";
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  msg.textContent = '';
+  try {
+    await signInWithEmailAndPassword(auth, email.value.trim(), password.value.trim());
+    if (email.value.trim() === ADMIN_EMAIL) window.location = 'admin.html';
+    else window.location = 'user.html';
+  } catch (e) {
+    msg.textContent = "Xato: " + e.message;
+  }
+});
+</script>
+</body>
+</html>

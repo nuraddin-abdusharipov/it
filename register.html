@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Register — Test Platforma</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="auth-wrap">
+      <h2>Ro'yxatdan o'tish</h2>
+      <input id="username" placeholder="Foydalanuvchi nomi (unikal)" />
+      <input id="email" type="email" placeholder="Email" />
+      <input id="password" type="password" placeholder="Parol (kamida 6 ta belgi)" />
+      <button id="registerBtn" class="btn primary">Ro'yxatdan o'tish</button>
+      <p id="msg" class="muted"></p>
+      <p class="muted">Allaqachon akkauntingiz bormi? <a href="login.html">Kirish</a></p>
+    </div>
+  </div>
+
+<script type="module">
+import { auth, db } from './firebase.js';
+import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { collection, query, where, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const username = document.getElementById('username');
+const email = document.getElementById('email');
+const password = document.getElementById('password');
+const msg = document.getElementById('msg');
+
+document.getElementById('registerBtn').addEventListener('click', async () => {
+  msg.textContent = '';
+  const u = username.value.trim();
+  const e = email.value.trim();
+  const p = password.value.trim();
+  if (!u || !e || p.length < 6) {
+    msg.textContent = 'Toʻliq va toʻgʻri maʼlumot kiriting.';
+    return;
+  }
+  try {
+    const q = query(collection(db, 'users'), where('username', '==', u));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      msg.textContent = 'Bu foydalanuvchi nomi band. Iltimos, boshqasini tanlang.';
+      return;
+    }
+    const userCred = await createUserWithEmailAndPassword(auth, e, p);
+    const user = userCred.user;
+    await addDoc(collection(db, 'users'), {
+      uid: user.uid,
+      username: u,
+      email: e,
+      createdAt: serverTimestamp()
+    });
+    msg.textContent = 'Roʻyxatdan oʻtildi. Endi kirishingiz mumkin.';
+    setTimeout(() => location.href = 'login.html', 1200);
+  } catch (err) {
+    msg.textContent = 'Xatolik: ' + err.message;
+  }
+});
+</script>
+</body>
+</html>

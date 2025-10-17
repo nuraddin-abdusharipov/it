@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin Panel — Test Platforma</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="admin-wrap">
+      <h2>Admin Panel</h2>
+
+      <!-- Statistikalar -->
+      <div class="grid" id="statsGrid">
+        <div class="card"><h3 id="userCount">0</h3><p class="muted">Jami foydalanuvchilar</p></div>
+        <div class="card"><h3 id="testedUsers">0</h3><p class="muted">Test ishlagan foydalanuvchilar</p></div>
+        <div class="card"><h3 id="attemptsCount">0</h3><p class="muted">Jami urinishlar</p></div>
+        <div class="card"><h3 id="avgScore">0</h3><p class="muted">O'rtacha ball</p></div>
+      </div>
+      <p id="statsMsg" class="muted"></p>
+
+      <!-- Savol qo'shish -->
+      <h3 style="margin-top:18px">Savollar qo'shish</h3>
+      <div class="card" style="margin-bottom:8px">
+        <label>Yo'nalish</label>
+        <select id="qdir">
+          <option value="javascript">JavaScript</option>
+          <option value="react">React</option>
+          <option value="flutter">Flutter</option>
+          <option value="python">Python</option>
+        </select>
+
+        <label>Savol matni</label>
+        <textarea id="qtext" placeholder="Savolni kiriting"></textarea>
+
+        <label>Javoblar (to‘g‘ri javobni birinchi kiriting)</label>
+        <input id="opt1" placeholder="To‘g‘ri javob" />
+        <input id="opt2" placeholder="Noto‘g‘ri javob 1" />
+        <input id="opt3" placeholder="Noto‘g‘ri javob 2" />
+        <input id="opt4" placeholder="Noto‘g‘ri javob 3" />
+
+        <button id="addQuestion" class="btn primary">Savol qo‘shish</button>
+        <p id="qmsg" class="muted"></p>
+      </div>
+
+      <!-- Savollar ro‘yxati -->
+      <h3>Savollar ro‘yxati</h3>
+      <div class="card" style="margin-bottom:8px">
+        <label>Yo‘nalishni tanlang</label>
+        <select id="filterDir">
+          <option value="">Barchasi</option>
+          <option value="javascript">JavaScript</option>
+          <option value="react">React</option>
+          <option value="flutter">Flutter</option>
+          <option value="python">Python</option>
+        </select>
+
+        <table style="margin-top:12px; width:100%;">
+          <thead>
+            <tr>
+              <th>Savol</th>
+              <th>Yo‘nalish</th>
+              <th>Amallar</th>
+            </tr>
+          </thead>
+          <tbody id="questionsTable"></tbody>
+        </table>
+      </div>
+
+      <!-- Natijalar -->
+      <h3>Natijalar</h3>
+      <table style="width:100%;">
+        <thead>
+          <tr>
+            <th>Foydalanuvchi</th>
+            <th>Yo‘nalish</th>
+            <th>Ball</th>
+            <th>Urinishlar</th>
+            <th>Sana</th>
+          </tr>
+        </thead>
+        <tbody id="resultsTable"></tbody>
+      </table>
+
+      <button id="logout" class="btn ghost" style="margin-top:12px">Chiqish</button>
+    </div>
+  </div>
+
+<script type="module">
+import { auth, db } from './firebase.js';
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { 
+  collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, where 
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+// 🔐 Foydalanuvchini tekshirish
+onAuthStateChanged(auth, user => {
+  if (!user) {
+    location.href = 'login.html';
+  }
+});
+
+// 📊 Statistikani yuklash
+async function loadAdminStats() {
+  try {
+    const usersSnap = await getDocs(collection(db, "users"));
+    const resultsSnap = await getDocs(collection(db, "results"));
+
+    document.getElementById("userCount").textContent = usersSnap.size;
+
+    const uniqueUsers = new Set();
+    let totalScore = 0;
+    let validResults = 0;
+
+    resultsSnap.forEach((r) => {
+      const data = r.data();
+      if (data.uid) uniqueUsers.add(data.uid);
+      const score = Number(data.score);
+      if (!isNaN(score)) {
+        totalScore += score;
+        validResults++;
+      }
+    });
+
+    document.getElementById("testedUsers").textContent = uniqueUsers.size;
+    document.getElementById("attemptsCount").textContent = resultsSnap.size;
+    document.getElementById("avgScore").textContent = validResults > 0 ? (totalScore / validResults).toFixed(1) : "0";
+    
+    const tbody = document.getElementById("resultsTable");
+    tbody.innerHTML = "";
+    resultsSnap.forEach((r) => {
+      const d = r.data();
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${d.username || "Noma'lum"}</td>
+        <td>${d.category || "Noma'lum"}</td>
+        <td>${d.score ?? "0"}</td>
+        <td>${d.attempts ?? "1"}</td>
+        <td>${d.date?.seconds ? new Date(d.date.seconds * 1000).toLocaleString() : "N/A"}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("statsMsg").textContent = resultsSnap.empty
+      ? "Hozircha natijalar mavjud emas."
+      : "";
+  } catch (e) {
+    document.getElementById("statsMsg").textContent = "Xatolik: " + e.message;
+  }
+}
+
+// ❓ Savollarni yuklash
+async function loadQuestions() {
+  const filterDir = document.getElementById('filterDir').value;
+  const questionsTable = document.getElementById('questionsTable');
+  questionsTable.innerHTML = '';
+
+  try {
+    let qSnap;
+    if (filterDir) {
+      qSnap = await getDocs(query(collection(db, 'questions'), where('direction', '==', filterDir)));
+    } else {
+      qSnap = await getDocs(collection(db, 'questions'));
+    }
+
+    if (qSnap.empty) {
+      document.getElementById('qmsg').textContent = "Hozircha savollar mavjud emas.";
+      return;
+    } else {
+      document.getElementById('qmsg').textContent = "";
+    }
+
+    qSnap.forEach((q) => {
+      const d = q.data();
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${d.question}</td>
+        <td>${d.direction}</td>
+        <td><button class="btn ghost deleteBtn" data-id="${q.id}">O'chirish</button></td>
+      `;
+      questionsTable.appendChild(tr);
+    });
+
+    document.querySelectorAll('.deleteBtn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        try {
+          await deleteDoc(doc(db, 'questions', id));
+          btn.closest('tr').remove();
+          document.getElementById('qmsg').textContent = "Savol o‘chirildi.";
+        } catch (e) {
+          document.getElementById('qmsg').textContent = "Xatolik: " + e.message;
+        }
+      });
+    });
+  } catch (e) {
+    document.getElementById('qmsg').textContent = "Xatolik: " + e.message;
+  }
+}
+
+// ➕ Savol qo‘shish
+document.getElementById('addQuestion').addEventListener('click', async () => {
+  const qdir = document.getElementById('qdir').value;
+  const qtext = document.getElementById('qtext').value.trim();
+  const opt1 = document.getElementById('opt1').value.trim();
+  const opt2 = document.getElementById('opt2').value.trim();
+  const opt3 = document.getElementById('opt3').value.trim();
+  const opt4 = document.getElementById('opt4').value.trim();
+  const qmsg = document.getElementById('qmsg');
+
+  if (!qdir || !qtext || !opt1 || !opt2 || !opt3 || !opt4) {
+    qmsg.textContent = "Barcha maydonlarni to‘ldiring.";
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, 'questions'), {
+      direction: qdir,
+      question: qtext,
+      options: [opt1, opt2, opt3, opt4],
+      correctIndex: 0,
+      createdAt: serverTimestamp()
+    });
+    qmsg.textContent = "✅ Savol muvaffaqiyatli qo‘shildi.";
+    ['qtext','opt1','opt2','opt3','opt4'].forEach(id => document.getElementById(id).value = '');
+    loadQuestions();
+  } catch (e) {
+    qmsg.textContent = "Xatolik: " + e.message;
+  }
+});
+
+// 🔄 Filter o‘zgarganda
+document.getElementById('filterDir').addEventListener('change', loadQuestions);
+
+// 🚪 Chiqish
+document.getElementById('logout').addEventListener('click', () => {
+  signOut(auth).then(() => location.href = 'login.html');
+});
+
+// Boshlang‘ich yuklash
+loadAdminStats();
+loadQuestions();
+</script>
+</body>
+</html>

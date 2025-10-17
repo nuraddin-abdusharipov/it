@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Test — Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="test-wrap">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 id="title">Test</h3>
+        <div>Ball: <strong id="score">0</strong>/60</div>
+      </div>
+      <hr/>
+      <div id="qbox">
+        <div id="qcount" class="muted">0 / 30</div>
+        <h2 id="qtext"></h2>
+        <div class="options" id="opts"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:12px;align-items:center">
+          <div class="muted">Vaqt: <span id="timer">20</span>s</div>
+          <button id="next" class="btn ghost hidden">Keyingi</button>
+        </div>
+      </div>
+      <div id="result" class="hidden" style="margin-top:12px">
+        <h3>Natija</h3>
+        <div>Jami ball: <strong id="finalScore"></strong>/60</div>
+        <p id="resMsg" class="muted"></p>
+        <button onclick="location.href='user.html'" class="btn primary">Orqaga</button>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+import { auth, db } from './firebase.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { collection, getDocs, query, where, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+onAuthStateChanged(auth, user => {
+  if (!user) location.href = 'login.html';
+});
+
+const QUESTIONS_PER_TEST = 30;
+const TIME_PER_Q = 20;
+const POINTS_PER_Q = 2;
+
+let questions = [];
+let index = 0;
+let score = 0;
+let timerInterval = null;
+
+const dir = localStorage.getItem('direction') || 'javascript';
+document.getElementById('title').textContent = "Yo'nalish: " + dir.replace('-', ' ');
+
+async function loadQuestions() {
+  const qSnap = await getDocs(query(collection(db, 'questions'), where('direction', '==', dir)));
+  qSnap.forEach(d => questions.push({ id: d.id, ...d.data() }));
+  shuffle(questions);
+  questions = questions.slice(0, QUESTIONS_PER_TEST);
+  showQuestion();
+}
+
+function showQuestion() {
+  if (index >= questions.length) {
+    finishTest();
+    return;
+  }
+  const q = questions[index];
+  document.getElementById('qcount').textContent = (index + 1) + ' / ' + questions.length;
+  document.getElementById('qtext').textContent = q.question;
+  const opts = document.getElementById('opts');
+  opts.innerHTML = '';
+
+  // Javoblarni tasodifiy tartibda aralashtirish
+  const shuffledOptions = [...q.options];
+  const shuffledIndices = Array.from({ length: q.options.length }, (_, i) => i);
+  shuffle(shuffledIndices);
+  
+  // To'g'ri javobning yangi indeksini aniqlash
+  const newCorrectIndex = shuffledIndices.indexOf(q.correctIndex);
+  
+  // Aralashtirilgan javoblarni ko'rsatish
+  shuffledIndices.forEach((originalIndex, i) => {
+    const el = document.createElement('div');
+    el.className = 'option';
+    el.textContent = q.options[originalIndex];
+    el.onclick = () => choose(i === newCorrectIndex, el);
+    opts.appendChild(el);
+  });
+  startTimer();
+}
+
+function choose(correct, el) {
+  clearInterval(timerInterval);
+  document.querySelectorAll('.option').forEach(o => o.classList.add('disabled'));
+  if (correct) {
+    el.style.background = '#16a34a';
+    score += POINTS_PER_Q;
+    document.getElementById('score').textContent = score;
+  } else {
+    el.style.background = '#ef4444';
+  }
+  document.getElementById('next').classList.remove('hidden');
+}
+
+document.getElementById('next').addEventListener('click', () => {
+  document.getElementById('next').classList.add('hidden');
+  index++;
+  showQuestion();
+});
+
+function startTimer() {
+  let t = TIME_PER_Q;
+  document.getElementById('timer').textContent = t;
+  timerInterval = setInterval(() => {
+    t--;
+    document.getElementById('timer').textContent = t;
+    if (t <= 0) {
+      clearInterval(timerInterval);
+      document.querySelectorAll('.option').forEach(o => o.classList.add('disabled'));
+      document.getElementById('next').classList.remove('hidden');
+    }
+  }, 1000);
+}
+
+async function finishTest() {
+  document.getElementById('qbox').classList.add('hidden');
+  document.getElementById('result').classList.remove('hidden');
+  document.getElementById('finalScore').textContent = score;
+  await saveResult();
+}
+
+async function saveResult() {
+  try {
+    const user = auth.currentUser;
+    if (!user) return;
+    let username = user.email;
+    const uSnap = await getDocs(query(collection(db, 'users'), where('uid', '==', user.uid)));
+    if (!uSnap.empty) {
+      username = uSnap.docs[0].data().username || username;
+    }
+    await addDoc(collection(db, 'results'), {
+      uid: user.uid,
+      username,
+      category: dir,
+      score,
+      attempts: 1,
+      date: serverTimestamp()
+    });
+    document.getElementById('resMsg').textContent = 'Natija saqlandi.';
+  } catch (e) {
+    document.getElementById('resMsg').textContent = 'Saqlashda xatolik: ' + e.message;
+  }
+}
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+}
+
+loadQuestions();
+</script>
+</body>
+</html>
