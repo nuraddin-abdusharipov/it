@@ -11,21 +11,21 @@
     <div class="test-wrap">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <h3 id="title">Test</h3>
-        <div>Ball: <strong id="score">0</strong>/60</div>
+        <div>Ball: <strong id="score">0</strong>/100</div>
       </div>
       <hr/>
       <div id="qbox">
-        <div id="qcount" class="muted">0 / 30</div>
+        <div id="qcount" class="muted">0 / 25</div>
         <h2 id="qtext"></h2>
         <div class="options" id="opts"></div>
         <div style="display:flex;justify-content:space-between;margin-top:12px;align-items:center">
-          <div class="muted">Vaqt: <span id="timer">20</span>s</div>
+          <div class="muted">Vaqt: <span id="timer">500</span>s</div>
           <button id="next" class="btn ghost hidden">Keyingi</button>
         </div>
       </div>
       <div id="result" class="hidden" style="margin-top:12px">
         <h3>Natija</h3>
-        <div>Jami ball: <strong id="finalScore"></strong>/60</div>
+        <div>Jami ball: <strong id="finalScore"></strong>/100</div>
         <p id="resMsg" class="muted"></p>
         <button onclick="location.href='user.html'" class="btn primary">Orqaga</button>
       </div>
@@ -41,9 +41,9 @@ onAuthStateChanged(auth, user => {
   if (!user) location.href = 'login.html';
 });
 
-const QUESTIONS_PER_TEST = 30;
-const TIME_PER_Q = 20;
-const POINTS_PER_Q = 2;
+const QUESTIONS_PER_TEST = 25;
+const TIME_PER_Q = 100;
+const POINTS_PER_Q = 4;
 
 let questions = [];
 let index = 0;
