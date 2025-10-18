@@ -19,7 +19,7 @@
         <h2 id="qtext"></h2>
         <div class="options" id="opts"></div>
         <div style="display:flex;justify-content:space-between;margin-top:12px;align-items:center">
-          <div class="muted">Vaqt: <span id="timer">500</span>s</div>
+          <div class="muted">Vaqt: <span id="timer">20</span>s</div>
           <button id="next" class="btn ghost hidden">Keyingi</button>
         </div>
       </div>
@@ -42,7 +42,7 @@ onAuthStateChanged(auth, user => {
 });
 
 const QUESTIONS_PER_TEST = 25;
-const TIME_PER_Q = 100;
+const TIME_PER_Q = 20;
 const POINTS_PER_Q = 4;
 
 let questions = [];
