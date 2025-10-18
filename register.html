@@ -54,7 +54,7 @@ document.getElementById('registerBtn').addEventListener('click', async () => {
       createdAt: serverTimestamp()
     });
     msg.textContent = 'Roʻyxatdan oʻtildi. Endi kirishingiz mumkin.';
-    setTimeout(() => location.href = 'login.html', 1200);
+    setTimeout(() => location.href = 'user.html', 1200);
   } catch (err) {
     msg.textContent = 'Xatolik: ' + err.message;
   }
