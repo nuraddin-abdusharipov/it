@@ -31,7 +31,7 @@ import { auth } from './firebase.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 onAuthStateChanged(auth, user => {
-  if (!user) location.href = 'login.html';
+  if (!user) location.href = 'user.html';
 });
 
 document.getElementById('start').addEventListener('click', () => {
