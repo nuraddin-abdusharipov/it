@@ -11,7 +11,6 @@
     <div class="admin-wrap">
       <h2>Admin Panel</h2>
 
-      <!-- Statistikalar -->
       <div class="grid" id="statsGrid">
         <div class="card"><h3 id="userCount">0</h3><p class="muted">Jami foydalanuvchilar</p></div>
         <div class="card"><h3 id="testedUsers">0</h3><p class="muted">Test ishlagan foydalanuvchilar</p></div>
@@ -20,7 +19,6 @@
       </div>
       <p id="statsMsg" class="muted"></p>
 
-      <!-- Savol qo'shish -->
       <h3 style="margin-top:18px">Savollar qo'shish</h3>
       <div class="card" style="margin-bottom:8px">
         <label>Yo'nalish</label>
@@ -29,6 +27,7 @@
           <option value="html">HTML</option>
           <option value="css">CSS</option>
           <option value="reactjs">React JS</option>
+          <option value="git">Git</option>
         </select>
 
         <label>Savol matni</label>
@@ -54,6 +53,7 @@
           <option value="reactjs">React js</option>
           <option value="html">HTML</option>
           <option value="css">CSS</option>
+          <option value="git">Git</option>
         </select>
 
         <table style="margin-top:12px; width:100%;">
@@ -94,14 +94,12 @@ import {
   collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, where 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-// 🔐 Foydalanuvchini tekshirish
 onAuthStateChanged(auth, user => {
   if (!user) {
     location.href = 'login.html';
   }
 });
 
-// 📊 Statistikani yuklash
 async function loadAdminStats() {
   try {
     const usersSnap = await getDocs(collection(db, "users"));
@@ -150,7 +148,6 @@ async function loadAdminStats() {
   }
 }
 
-// ❓ Savollarni yuklash
 async function loadQuestions() {
   const filterDir = document.getElementById('filterDir').value;
   const questionsTable = document.getElementById('questionsTable');
@@ -199,7 +196,6 @@ async function loadQuestions() {
   }
 }
 
-// ➕ Savol qo‘shish
 document.getElementById('addQuestion').addEventListener('click', async () => {
   const qdir = document.getElementById('qdir').value;
   const qtext = document.getElementById('qtext').value.trim();
@@ -230,15 +226,12 @@ document.getElementById('addQuestion').addEventListener('click', async () => {
   }
 });
 
-// 🔄 Filter o‘zgarganda
 document.getElementById('filterDir').addEventListener('change', loadQuestions);
 
-// 🚪 Chiqish
 document.getElementById('logout').addEventListener('click', () => {
   signOut(auth).then(() => location.href = 'login.html');
 });
 
-// Boshlang‘ich yuklash
 loadAdminStats();
 loadQuestions();
 </script>
